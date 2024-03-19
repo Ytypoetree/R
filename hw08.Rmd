@@ -1,0 +1,297 @@
+---
+author: "Tianyao Yu"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE, fig.height = 3)
+library(tidyverse)
+library(kableExtra)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\Var}{\mathsf{Var}}
+\renewcommand{\prob}{\mathsf{P}}
+
+
+## Assignment 8
+
+### Preliminaries
+
+- Directories
+    - COURSE/homework/
+    - COURSE/homework/hw08/
+    - COURSE/data/
+    - COURSE/scripts/
+- Files
+  - COURSE/homework/hw08/hw08.Rmd
+  - COURSE/scripts/viridis.R
+  - COURSE/scripts/ggprob.R
+
+### Aims
+
+- Practice the binomial distribution and normal distributions.
+
+### Problems
+
+##### 1.
+Let the random variable $X \sim \text{Binomial}(150, 0.4)$.
+
+-1a. Calculate and report the mean and standard deviation of the distribution.
+
+```{r}
+mu=150*0.4
+sigma2=150*0.4*(1-0.4)
+sigma=sqrt(sigma2)
+mu
+sigma
+```
+
+-1b. Calculate and report the probability that the random variable is exactly equal to 70, $\prob(X = 70)$.
+
+```{r}
+prob_x_70=dbinom(70,150,0.4)
+prob_x_70
+```
+
+-1c. Calculate and report the probability that $X$ equals 70 or more, $\prob(X \ge 70)$.
+
+```{r}
+prob_1c=1-pbinom(70,150,0.4)
+prob_1c
+```
+
+-1d. Draw a graph of the binomial distribution with vertical lines at the mean (red and dashed), and 1, 2, and 3 standard deviations above and below the mean (red and dotted).
+
+
+```{r}
+gbinom(150, 0.4, scale = TRUE) +
+  geom_vline(xintercept = mu, color = "red", alpha = 0.5) +
+  geom_vline(xintercept = mu + c(-1,1)*sigma,
+             color = "red", linetype = "dashed") +
+  geom_vline(xintercept = mu + c(-2,2)*sigma,
+             color = "red", linetype = "dotted") +
+  geom_vline(xintercept = mu+ c(-3,3)*sigma,
+             color = "red", linetype = "dotted") +
+  theme_minimal()
+```
+
+
+
+##### 2.
+What are the probabilities that $X$ from Problem 1 is within one, two, and three standard deviations of the mean? Round each probability to four decimal places.
+
+-2a.
+$\prob(\mu - \sigma \le X \le \mu + \sigma)$
+```{r}
+prob_2a=pbinom(mu+sigma,150,0.4)-pbinom(mu-sigma,150,0.4)
+prob_2a
+```
+
+-2b.
+$\prob(\mu - 2\sigma \le X \le \mu + 2\sigma)$
+```{r}
+prob_2b=pbinom(mu+2*sigma,150,0.4)-pbinom(mu-2*sigma,150,0.4)
+prob_2b
+```
+
+-2c.
+$\prob(\mu - 3\sigma \le X \le \mu + 3\sigma)$
+```{r}
+prob_2c=pbinom(mu+3*sigma,150,0.4)-pbinom(mu-3*sigma,150,0.4)
+prob_2c
+```
+
+
+
+##### 3.
+The following code makes a graph of the cumulative distribution function for the $\text{Binomial}(7, 0.3)$ distribution, that is $F(x) = \prob(X \le x)$. This is the function which is calculated by the base R function `pbinom()`.
+
+
+```{r}
+prob4 = tibble(
+  x = seq(-1,8,1),
+  p = dbinom(x, 7, 0.3),
+  cdf = pbinom(x, 7, 0.3))
+prob4
+
+ggplot(prob4, aes(x = x, y = cdf )) +
+  geom_step(color = "blue") +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0.4, color = "red", linetype = "dashed") +
+  scale_x_continuous(breaks = 0:7) +
+  xlab("x") +
+  ylab("Probability") +
+  ggtitle("Binomial(7, 0.3) distribution CDF") +
+  theme_minimal()
+```
+
+-3a. Calculate the 0.4 quantile of the $\text{Binomial}(7, 0.3)$
+
+```{r}
+qbinom(0.4,7,0.3)
+```
+
+-3b. Explain how the value of the quantile is related to the red dotted line in the plot.
+
+> The value of the quantile is the x-coordinate of the intersection point of the red dotted line and the blue line.
+
+-3c. Use the graph to determine the 0.75 quantile of this distribution.
+Then verify your observation with a calculation.
+
+```{r}
+##According to the graph, the 0.75 quantile of this distribution is 3
+qbinom(0.75,7,0.3)
+```
+
+
+
+
+
+##### 4.
+In a large population of likely voters, the proportion of voters who plan to vote for candidate A is $p = 0.52$. In a random sample of 750 likely voters, what is the probability that the proportion of voters who plan to vote for candidate A is less than 50% (the number of such voters is less than 375)?
+  
+```{r}
+pbinom(374,750,0.52)
+```
+
+
+
+##### 5.
+Create a data frame with the following columns.
+Each row corresponds to a single $\text{Binomial}(n,p)$ distribution. The first two columns are the parameters of the distribution.
+
+- `n`, which ranges from 10 to 1000 by 10s $(10, 20, 30, \ldots, 1000)$
+- `p`, which is always equal to $0.7$
+- `mu`, the mean
+- `sigma`, the standard deviation
+- `q90`, the 0.9 quantile (or 90th percentile)
+- `prob_1`, $\prob(\mu - 10 \le X \le \mu + 10)$, the probability that the random variable is within 10 of the mean
+- `prob_2`, $\prob(0.69 \le X/n \le 0.71)$, the probability that the sample proportion $\hat{p} = X/n$ is within 0.01 of $p$.
+
+**Note that $\prob(0.69 \le X/n \le 0.71)$ if and only if $\prob(0.69n \le X \le 0.71n)$.**
+
+
+-5a. Create the data frame. Then print the first 20 rows of it.
+
+```{r}
+p5a = tibble(
+  n=seq(10,1000,10),
+  p=0.7,
+  mu=n*p,
+  sigma=n*p*(1-p),
+  q90=qbinom(0.9,n,p),
+  prob_1=pbinom(mu+10,n,p)-pbinom(mu-10,n,p),
+  prob_2=pbinom(0.71*n,n,p)-pbinom(0.69*n,n,p)
+)
+p5a
+```
+
+-5b. Make a plot of `q90` versus `n` (`n` is on the x axis). Describe the pattern you see.
+
+```{r}
+ggplot(p5a,aes(x=n,y=q90))+
+  geom_line()
+```
+
+> As n goes up, the value of q90 goes up and they are linearly related.
+
+-5c. Make a plot of `prob_1` versus `n`. How does the probability that $X$ is within a fixed width interval around $\mu$ change as `n` increases?
+
+```{r}
+ggplot(p5a,aes(x=n,y=prob_1))+
+  geom_line()
+```
+
+> The probability goes down.
+
+-5d. Make a plot of `prob_2` versus `n`. How does the probability that the sample proportion is within a fixed width interval around `p` change as `n` increases?
+
+```{r}
+ggplot(p5a,aes(x=n,y=prob_2))+
+  geom_line()
+```
+
+> The probability fluctuate, but the overall trend is upward.
+
+
+
+##### 6.
+Suppose that $X \sim N(200, 40)$, ($X$ has a normal distribution with mean $\mu = 200$ and standard deviation $\sigma = 40$).
+
+-6a. Make a graph of this normal distribution.
+
+```{r}
+mu=200
+sigma=40
+ggplot()+
+  geom_norm_density(mu=mu, sigma=sigma, color = "magenta") +
+  theme_minimal()
+```
+
+-6b. Find $P(X > 250)$. Create a graph of the normal density with the corresponding interval $X > 250$ shaded.
+
+```{r}
+1 - pnorm(250, mu, sigma)
+gnorm(mu, sigma) +
+  geom_norm_fill(mu, sigma, a = 250, b = NULL) +
+  theme_minimal()
+```
+
+-6c. For what value $z$ is $P(Z > z)$ equal to $P(X > 250)$ where $Z$ is a standard normal random variable?
+
+```{r}
+p=pnorm(250,mu,sigma)
+z=qnorm(p,0,1)
+z
+```
+
+-6d. Find a number $a$ such that $P(200 - a < X < 200 + a) = 0.70$. Create a graph which shows the normal density with the interval from $200 -a$ to $200 + a$ shaded.
+
+```{r}
+a=qnorm(0.5+0.70/2,mu,sigma)-200
+a
+gnorm(mu, sigma) +
+  geom_norm_fill(mu, sigma, a = 200-a, b = 200+a) +
+  theme_minimal()
+```
+
+
+##### 7.
+Assume that the total number of points scored in an NCAA men's college basketball game is approximately normal (true values are discrete, but we approximate with a continuous distribution) with a mean $\mu = 145.25$ and a standard deviation $\sigma = 18.51$.
+
+-7a. In what proportion of games do we expect the total points scored to be 160 or more? (**Note: to correct for continuity, use 159.5.**)
+
+```{r}
+mu=145.25
+sigma=18.51
+prob7a=1-pnorm(159.5,mu,sigma)
+prob7a
+```
+
+-7b. What is the (approximate) probability that the mean total points per game in a random sample of 10 games is more than 160?
+
+```{r}
+prob_7b=1-pnorm(160*10,mu*10,sigma*10*10)
+prob_7b
+```
+
+
+
+##### 8.
+Consider the same NCAA basketball scoring distribution from the previous problem.
+Find a value $a$ where there is about a ten percent change that the total score of a random game is $a$ or higher, assuming a good approximation to a normal distribution.
+
+```{r}
+##?????
+a=qnorm(prob_7b+0.1,mu*10,sigma*10*10)/10
+a
+```
+
+
+  
+
+
